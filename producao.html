@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Produção · Studio 55</title>
+<title>Produção</title>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   :root{--bg:#f4f5f7;--card:#fff;--line:#e2e5ea;--text:#1c2530;--dim:#6b7785;--accent:#2f6fed;--green:#22a45d;--amber:#d68a12;--red:#cc2f2f;--radius:14px}
@@ -32,8 +32,25 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
   .card.row{display:flex;align-items:center;gap:12px}
   .rmain{flex:1;min-width:0}
-  .ractions{display:flex;flex-direction:column;gap:7px;flex:none;min-width:92px}
+  .ractions{display:flex;flex-direction:column;gap:7px;flex:none;min-width:100px;align-items:flex-end}
   .ractions .btn{width:100%}
+  .ractions .pill,.ractions .badge{max-width:120px;text-align:center}
+  .plinth{color:var(--text);font-size:12.5px;font-weight:600;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dl2{font-size:12px;color:var(--dim);margin-top:6px}
+  .flag{font-size:16px}
+  .photofs{background:rgba(0,0,0,.92);align-items:center;justify-content:center;z-index:70}
+  .photofs img{max-width:96vw;max-height:90vh;object-fit:contain;border-radius:8px}
+  .photofs .fsx{position:fixed;top:12px;right:16px;color:#fff;font-size:28px;cursor:pointer}
+  .th img{cursor:zoom-in}
+  .card.clickable{cursor:pointer}
+  .card.clickable:active{transform:scale(.995)}
+  .vsec{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);font-weight:800;margin:20px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
+  .mbody .vsec:first-child{margin-top:0;padding-top:0;border-top:none}
+  .vlbl{font-size:12px;color:var(--dim);font-weight:600;margin:14px 0 6px}
+  .vnotes{white-space:pre-wrap;font-size:14px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;color:var(--text)}
+  .vempty{color:var(--dim);font-size:13px}
+  .vthumbs .th{width:66px;height:66px}
+  .thn{position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,.6);color:#fff;border-radius:6px;font-size:10px;font-weight:700;padding:1px 5px}
   .top{display:flex;align-items:baseline;gap:8px;min-width:0}
   .num{font-weight:800;font-size:17px;flex:none}
   .cust{color:var(--dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -60,7 +77,7 @@
   @media(min-width:560px){.ov{align-items:center;padding:24px}}
   .modal{background:var(--card);width:100%;max-width:520px;border-radius:16px 16px 0 0;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
   @media(min-width:560px){.modal{border-radius:16px}}
-  .mhead{display:flex;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .mhead{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
   .mhead b{flex:1;font-size:16px}
   .mx{cursor:pointer;color:var(--dim);font-size:20px;padding:2px 8px;line-height:1}
   .mbody{padding:16px 18px;overflow-y:auto}
@@ -178,12 +195,19 @@ const app=document.getElementById("app");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const cssEsc=s=>String(s).replace(/["\\]/g,"\\$&");
 function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2000); }
+/* Ver uma foto em ecrã cheio (clicar em qualquer sítio fecha). */
+function viewPhoto(src){
+  const ov=document.createElement("div"); ov.className="ov photofs";
+  ov.innerHTML=`<span class="fsx">✕</span><img src="${src}" alt="foto">`;
+  ov.onclick=()=>ov.remove();
+  document.body.appendChild(ov);
+}
 
 let modalOpen=false;
-function openModal(title,bodyHTML,footHTML){
+function openModal(title,bodyHTML,footHTML,headExtra){
   const ov=document.createElement("div"); ov.className="ov";
-  ov.innerHTML=`<div class="modal"><div class="mhead"><b>${esc(title)}</b><span class="mx">✕</span></div>
-    <div class="mbody">${bodyHTML}</div><div class="mfoot">${footHTML||""}</div></div>`;
+  ov.innerHTML=`<div class="modal"><div class="mhead"><b>${esc(title)}</b>${headExtra||""}<span class="mx">✕</span></div>
+    <div class="mbody">${bodyHTML}</div>${footHTML?`<div class="mfoot">${footHTML}</div>`:""}</div>`;
   document.body.appendChild(ov); modalOpen=true;
   const close=()=>{ ov.remove(); modalOpen=false; };
   ov.querySelector(".mx").onclick=close;
@@ -202,7 +226,7 @@ function confirmDialog(title,html,okLabel){
 function renderLogin(msg){
   app.innerHTML=`<div class="login">
     <h1>🪵 Produção</h1>
-    <p>Studio 55 — acompanhamento de encomendas</p>
+    <p>Acompanhamento de encomendas</p>
     <div class="row"><input id="pw" type="password" placeholder="Password" autocomplete="current-password"></div>
     <div class="err" id="err">${msg?esc(msg):""}</div>
     <button class="btn primary block" id="go">Entrar</button>
@@ -218,7 +242,7 @@ function renderLogin(msg){
 let pollTimer=null, orderCache=[];
 async function renderList(){
   app.innerHTML=`<header>
-      <h1>Produção <span class="sub">Studio 55</span></h1>
+      <h1>Produção</h1>
       <button class="btn ghost" id="refresh" title="Atualizar">↻</button>
       <button class="btn ghost" id="logout" title="Sair">Sair</button>
     </header>
@@ -250,49 +274,70 @@ function cardHTML(o){
   const dl=daysLeft(o);
   const dlISO=deadlineISO(o);
   const badge=dl==null?"":`<span class="badge ${daysClass(dl)}">${esc(daysText(dl))}</span>`;
-  return `<div class="card row" data-id="${esc(o.id)}">
+  const flag=o.dest_flag?` <span class="flag">${esc(o.dest_flag)}</span>`:"";
+  const spec=specLine(o);
+  return `<div class="card row clickable" data-id="${esc(o.id)}">
     <div class="rmain">
-      <div class="top"><span class="num">${esc(o.number||"—")}</span><span class="cust">${esc(o.customer||"")}</span></div>
+      <div class="top"><span class="num">${esc(o.number||"—")}</span><span class="cust">${esc(o.customer||"")}${flag}</span></div>
       ${o.summary?`<div class="summ">${esc(o.summary)}</div>`:""}
-      <div class="meta">
-        <span class="pill ${esc(o.phase||"queued")}">${esc(phaseLabel(o.phase))}</span>
-        ${dlISO?`<span class="dl">Prazo: ${esc(deadlineLong(o))}</span>`:""}
-        ${badge}
-      </div>
+      ${spec?`<div class="plinth">${esc(spec)}</div>`:""}
+      ${dlISO?`<div class="dl2">Prazo: ${esc(deadlineLong(o))}</div>`:""}
     </div>
     <div class="ractions">
-      <button class="btn primary sm" data-edit>Editar</button>
-      <button class="btn ghost sm" data-view>Ver</button>
-      <button class="btn ghost sm" data-pdf title="Descarregar PDF">⬇ PDF</button>
+      ${badge}
+      <span class="pill ${esc(o.phase||"queued")}">${esc(phaseLabel(o.phase))}</span>
     </div>
   </div>`;
 }
+/* Linha compacta de specs no cartão: madeira · acabamento · espessura. */
+function specLine(o){ const s=o.piece_specs||{}; return [s.wood,s.paint,s.thickness].filter(Boolean).join(" · "); }
 function wireCard(o){
   const card=app.querySelector(`.card[data-id="${cssEsc(o.id)}"]`); if(!card) return;
-  card.querySelector("[data-view]").onclick=()=>openView(o);
-  card.querySelector("[data-edit]").onclick=()=>openEdit(o);
-  card.querySelector("[data-pdf]").onclick=()=>pdfOrder(o);
+  card.onclick=()=>openView(o);      // clicar no cartão abre o modo Ver
 }
 
 /* ----- Ver (só leitura) ----- */
 function openView(o){
-  const dl=daysLeft(o), dlISO=deadlineISO(o);
-  const rows=[
-    ["Cliente",esc(o.customer||"—")],
-    ["Modelo",esc(o.summary||"—")],
-    ["Estado",`<span class="pill ${esc(o.phase||"queued")}">${esc(phaseLabel(o.phase))}</span>`],
-    ["Código da peça",esc(o.piece_code||"—")],
-    ["Data da recolha",o.pickup_date?fmtDate(o.pickup_date):"—"],
-    ["Hora da recolha",o.pickup_slot?esc(slotLabel(o.pickup_slot)):"—"],
-    ["Prazo de produção",dlISO?esc(deadlineLong(o)):"—"],
-    ["Estado do prazo",dl==null?"—":`<span class="badge ${daysClass(dl)}">${esc(daysText(dl))}</span>`],
-  ];
-  if(o.updated_by) rows.push(["Última alteração",esc(o.updated_by)+(o.updated_at?" · "+esc(fmtWhen(o.updated_at)):"")]);
-  const body=rows.map(([k,v])=>`<div class="vrow"><span class="vk">${k}</span><span class="vv">${v}</span></div>`).join("");
-  const m=openModal("Encomenda "+(o.number||""),body,`<button class="btn ghost" data-ok>Fechar</button><button class="btn" data-pdf>⬇ PDF</button><button class="btn primary" data-toedit>Editar</button>`);
+  const dl=daysLeft(o);
+  const specs=o.piece_specs||{};
+  const ref=Array.isArray(o.client_photos)?o.client_photos:[];
+  const fin=Array.isArray(o.final_photos)?o.final_photos:[];
+  const flag=o.dest_flag?" "+esc(o.dest_flag):"";
+  const row=(k,v)=>`<div class="vrow"><span class="vk">${esc(k)}</span><span class="vv">${v}</span></div>`;
+  // Fotos indexadas: miniaturas numeradas; clicar abre em ecrã cheio.
+  const thumbs=(arr,tag)=>arr.length
+    ? `<div class="thumbs vthumbs">${arr.map((s,i)=>`<div class="th"><img src="${s}" data-fs="${tag}:${i}" alt="foto ${i+1}"><span class="thn">${i+1}</span></div>`).join("")}</div>`
+    : `<div class="vempty">Sem fotos.</div>`;
+  const body=`
+    <div class="vsec">Cliente</div>
+    ${row("Nome", esc(o.customer||"—")+flag)}
+    <div class="vsec">Encomenda</div>
+    ${row("Modelo", esc(o.summary||"—"))}
+    ${row("Madeira", esc(specs.wood||"—"))}
+    ${row("Acabamento", esc(specs.paint||"—"))}
+    ${row("Espessura", esc(specs.thickness||"—"))}
+    ${row("Base", esc(specs.base||"—"))}
+    ${row("Estado", `<span class="pill ${esc(o.phase||"queued")}">${esc(phaseLabel(o.phase))}</span>`)}
+    ${row("Prazo", (deadlineLong(o)||"—")+(dl!=null?` &nbsp;<span class="badge ${daysClass(dl)}">${esc(daysText(dl))}</span>`:""))}
+    <div class="vlbl">Comentários</div>
+    <div class="vnotes">${o.order_notes?esc(o.order_notes):"—"}</div>
+    <div class="vlbl">Fotos da encomenda</div>${thumbs(ref,"ref")}
+    <div class="vsec">Produto final</div>
+    ${row("Código da peça", esc(o.piece_code||"—"))}
+    <div class="vlbl">Fotos do produto final</div>${thumbs(fin,"fin")}
+    <div class="vsec">Data e hora da recolha</div>
+    ${row("Data", o.pickup_date?fmtDate(o.pickup_date):"—")}
+    ${row("Hora", o.pickup_slot?esc(slotLabel(o.pickup_slot)):"—")}
+    ${o.updated_by?row("Última alteração", esc(o.updated_by)+(o.updated_at?" · "+esc(fmtWhen(o.updated_at)):"")):""}`;
+  const m=openModal("Encomenda "+(o.number||""), body,
+    `<button class="btn ghost" data-ok>Fechar</button><button class="btn" data-pdf>⬇ PDF</button>`,
+    `<button class="btn primary sm" data-toedit>Editar</button>`);
   m.ov.querySelector("[data-ok]").onclick=m.close;
   m.ov.querySelector("[data-pdf]").onclick=()=>pdfOrder(o);
   m.ov.querySelector("[data-toedit]").onclick=()=>{ m.close(); openEdit(o); };
+  m.ov.querySelectorAll("[data-fs]").forEach(im=>im.onclick=()=>{
+    const p=im.dataset.fs.split(":"); viewPhoto((p[0]==="ref"?ref:fin)[+p[1]]);
+  });
 }
 
 /* ----- Descarregar PDF da encomenda -----
@@ -308,7 +353,8 @@ function pdfOrder(o){
     ["Prazo de produção", deadlineLong(o)||"—"],
     ["Dias restantes", daysText(daysLeft(o))],
   ].map(([k,v])=>`<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("");
-  const photos=(Array.isArray(o.final_photos)?o.final_photos:[]).map(s=>`<img src="${s}">`).join("");
+  const refPhotos=(Array.isArray(o.client_photos)?o.client_photos:[]).map(s=>`<img src="${s}">`).join("");
+  const finalPhotos=(Array.isArray(o.final_photos)?o.final_photos:[]).map(s=>`<img src="${s}">`).join("");
   const html=`<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>Encomenda ${esc(o.number||"")}</title>
 <style>
   *{box-sizing:border-box}
@@ -333,7 +379,7 @@ function pdfOrder(o){
   @media print{ body{padding:0} .photos img{page-break-inside:avoid} }
 </style></head><body>
   <div class="top">
-    <div class="biz">Studio 55<small>bases para gira-discos</small></div>
+    <div class="biz">Produção<small>bases para gira-discos</small></div>
     <div class="doc-h"><div class="t">Encomenda</div>
       <div class="m">Nº <b>${esc(o.number||"—")}</b><br>Data: ${esc(fmtDate(o.order_date))}${o.pickup_date?"<br>Recolha: "+esc(pickup):""}</div></div>
   </div>
@@ -346,8 +392,9 @@ function pdfOrder(o){
     <thead><tr><th>Produção</th><th>Detalhe</th></tr></thead>
     <tbody>${detail}</tbody>
   </table>
-  ${photos?`<div class="sec">Fotos do produto final</div><div class="photos">${photos}</div>`:""}
-  <div class="foot">Studio 55 · Ficha de produção · gerado em ${esc(fmtDate(todayISO()))} · sem valores</div>
+  ${refPhotos?`<div class="sec">Fotografias da encomenda</div><div class="photos">${refPhotos}</div>`:""}
+  ${finalPhotos?`<div class="sec">Fotos do produto final</div><div class="photos">${finalPhotos}</div>`:""}
+  <div class="foot">Ficha de produção · gerado em ${esc(fmtDate(todayISO()))} · sem valores</div>
   <script>
     window.addEventListener('load',function(){
       var imgs=[].slice.call(document.images),left=imgs.length;
@@ -393,6 +440,7 @@ function openEdit(o){
     const box=ov.querySelector("[data-thumbs]");
     box.innerHTML=photos.length?photos.map((s,i)=>`<div class="th"><img src="${s}" alt="foto ${i+1}"><span class="thx" data-rm="${i}">✕</span></div>`).join("")
       :`<span class="vk" style="font-size:13px">Ainda sem fotos.</span>`;
+    box.querySelectorAll(".th img").forEach((im,i)=>im.onclick=()=>viewPhoto(photos[i]));
     box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{ photos.splice(+b.dataset.rm,1); drawThumbs(); });
   };
   drawThumbs();
@@ -414,7 +462,7 @@ function openEdit(o){
     // Ao marcar "Enviado" pede confirmação — depois de enviado, a encomenda sai desta lista.
     if(phase==="shipped"){
       const ok=await confirmDialog("Marcar como Enviado?",
-        `<div class="note">Depois de marcada como <b>Enviado</b>, a encomenda <b>desaparece desta lista</b> (fica concluída). O Studio 55 continua a vê-la no ERP.</div>`,
+        `<div class="note">Depois de marcada como <b>Enviado</b>, a encomenda <b>desaparece desta lista</b> (fica concluída). A encomenda continua visível no ERP.</div>`,
         "Sim, marcar Enviado");
       if(!ok) return;
     }
