@@ -78,8 +78,6 @@
   .b-green{background:#dcf3e6;color:#1a8a4e}
   .b-amber{background:#fdf0dd;color:#b5730c}
   .b-red{background:#fbe2e2;color:#cc2f2f}
-  /* etiqueta de tipo (encomendas internas) */
-  .tag{background:#eceff3;color:#5b6774;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;flex:none}
   /* lista de progresso: cabeçalho de grupo, cartão por item, linha com caixa */
   .gsec{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);font-weight:800;margin:22px 0 10px}
   .gsec:first-child{margin-top:4px}
@@ -146,10 +144,6 @@ const phaseLabel=k=>(PHASES.find(p=>p[0]===k)||["",k||"—"])[1];
 /* Horas de recolha: só duas opções. */
 const SLOTS=[["am","09:00 – 13:00"],["pm","14:00 – 17:00"]];
 const slotLabel=k=>(SLOTS.find(s=>s[0]===k)||["",""])[1];
-/* Encomendas internas: sem cliente, para stock ou para experimentar. */
-const KINDS={stock:"Stock",prototype:"Protótipo"};
-const kindLabel=k=>KINDS[k]||"Interna";
-const isInternal=o=>String(o.kind||"client")==="internal";
 const DEADLINE_DAYS=10;                       // prazo de produção = data da encomenda + 10 dias
 const SKEY="s55_prod_session";
 
@@ -283,7 +277,7 @@ function renderLogin(msg){
 
 /* ===== Menu de secções ===== */
 /* A primeira é a que abre por defeito. */
-const TABS=[["clients","Encomendas para clientes"],["internal","Encomendas internas"],["tasks","Tarefas"]];
+const TABS=[["clients","Encomendas para clientes"],["tasks","Tarefas"]];
 let tab=TABS[0][0];
 
 let pollTimer=null, orderCache=[];
@@ -331,19 +325,14 @@ async function loadOrders(silent){
   renderOrderList();
 }
 
-/* Desenha a lista da secção aberta: clientes ou internas. */
+/* Desenha a lista de encomendas, por prazo de produção (mais urgente primeiro;
+   sem data vai para o fim). */
 function renderOrderList(){
   const list=document.getElementById("list"); if(!list) return;
-  const internal = tab==="internal";
-  const rows=orderCache.filter(o=>isInternal(o)===internal);
-  // Clientes: por prazo de produção (mais urgente primeiro; sem data vai para o fim).
-  // Internas: não têm prazo — mostram-se da mais recente para a mais antiga.
-  if(internal) rows.sort((a,b)=>String(b.order_date||"").localeCompare(String(a.order_date||"")));
-  else rows.sort((a,b)=>{ const da=deadlineISO(a)||"9999-99-99", dbb=deadlineISO(b)||"9999-99-99"; return da<dbb?-1:da>dbb?1:0; });
+  const rows=orderCache.slice()
+    .sort((a,b)=>{ const da=deadlineISO(a)||"9999-99-99", dbb=deadlineISO(b)||"9999-99-99"; return da<dbb?-1:da>dbb?1:0; });
   if(!rows.length){
-    list.innerHTML=internal
-      ? `<div class="empty">Sem encomendas internas.<br>São as peças para stock e os protótipos.</div>`
-      : `<div class="empty">Sem encomendas em produção.<br>As novas aparecem aqui; as enviadas saem da lista.</div>`;
+    list.innerHTML=`<div class="empty">Sem encomendas em produção.<br>As novas aparecem aqui; as enviadas saem da lista.</div>`;
     return;
   }
   list.innerHTML=rows.map(cardHTML).join("");
@@ -351,23 +340,17 @@ function renderOrderList(){
 }
 
 function cardHTML(o){
-  const internal=isInternal(o);
-  const dl=internal?null:daysLeft(o);
-  const dlISO=internal?"":deadlineISO(o);
+  const dl=daysLeft(o);
+  const dlISO=deadlineISO(o);
   const badge=dl==null?"":`<span class="badge ${daysClass(dl)}">${esc(daysText(dl))}</span>`;
-  const flag=(!internal&&o.dest_flag)?` <span class="flag">${esc(o.dest_flag)}</span>`:"";
+  const flag=o.dest_flag?` <span class="flag">${esc(o.dest_flag)}</span>`:"";
   const spec=specLine(o);
-  // Nas internas o lugar do cliente é ocupado pela etiqueta do tipo (Stock / Protótipo).
-  const head=internal
-    ? `<span class="tag">${esc(kindLabel(o.internal_kind))}</span>`
-    : `<span class="cust">${esc(o.customer||"")}${flag}</span>`;
   return `<div class="card row clickable" data-id="${esc(o.id)}">
     <div class="rmain">
-      <div class="top"><span class="num">${esc(o.number||"—")}</span>${head}</div>
+      <div class="top"><span class="num">${esc(o.number||"—")}</span><span class="cust">${esc(o.customer||"")}${flag}</span></div>
       ${o.summary?`<div class="summ">${esc(o.summary)}</div>`:""}
       ${spec?`<div class="plinth">${esc(spec)}</div>`:""}
       ${dlISO?`<div class="dl2">Prazo: ${esc(deadlineLong(o))}</div>`:""}
-      ${internal&&o.order_date?`<div class="dl2">Criada em ${esc(fmtDate(o.order_date))}</div>`:""}
     </div>
     <div class="ractions">
       ${badge}
@@ -451,8 +434,7 @@ async function toggleTask(id,el){
 
 /* ----- Ver (só leitura) ----- */
 function openView(o){
-  const internal=isInternal(o);
-  const dl=internal?null:daysLeft(o);
+  const dl=daysLeft(o);
   const specs=o.piece_specs||{};
   const ref=Array.isArray(o.client_photos)?o.client_photos:[];
   const fin=Array.isArray(o.final_photos)?o.final_photos:[];
@@ -463,18 +445,16 @@ function openView(o){
     ? `<div class="thumbs vthumbs">${arr.map((s,i)=>`<div class="th"><img src="${s}" data-fs="${tag}:${i}" alt="foto ${i+1}"><span class="thn">${i+1}</span></div>`).join("")}</div>`
     : `<div class="vempty">Sem fotos.</div>`;
   const body=`
-    ${internal
-      ? `<div class="vsec">Encomenda interna</div>${row("Tipo", esc(kindLabel(o.internal_kind)))}`
-      : `<div class="vsec">Cliente</div>${row("Nome", esc(o.customer||"—")+flag)}<div class="vsec">Encomenda</div>`}
+    <div class="vsec">Cliente</div>
+    ${row("Nome", esc(o.customer||"—")+flag)}
+    <div class="vsec">Encomenda</div>
     ${row("Modelo", esc(o.summary||"—"))}
     ${row("Madeira", esc(specs.wood||"—"))}
     ${row("Acabamento", esc(specs.paint||"—"))}
     ${row("Espessura", esc(specs.thickness||"—"))}
     ${row("Base", esc(specs.base||"—"))}
     ${row("Estado", `<span class="pill ${esc(o.phase||"queued")}">${esc(phaseLabel(o.phase))}</span>`)}
-    ${internal
-      ? row("Criada em", esc(fmtDate(o.order_date)))
-      : row("Prazo", (deadlineLong(o)||"—")+(dl!=null?` &nbsp;<span class="badge ${daysClass(dl)}">${esc(daysText(dl))}</span>`:""))}
+    ${row("Prazo", (deadlineLong(o)||"—")+(dl!=null?` &nbsp;<span class="badge ${daysClass(dl)}">${esc(daysText(dl))}</span>`:""))}
     <div class="vlbl">Comentários</div>
     <div class="vnotes">${o.order_notes?esc(o.order_notes):"—"}</div>
     <div class="vlbl">Fotos da encomenda</div>${thumbs(ref,"ref")}
@@ -485,7 +465,7 @@ function openView(o){
     ${row("Data", o.pickup_date?fmtDate(o.pickup_date):"—")}
     ${row("Hora", o.pickup_slot?esc(slotLabel(o.pickup_slot)):"—")}
     ${o.updated_by?row("Última alteração", esc(o.updated_by)+(o.updated_at?" · "+esc(fmtWhen(o.updated_at)):"")):""}`;
-  const m=openModal((internal?"Interna ":"Encomenda ")+(o.number||""), body,
+  const m=openModal("Encomenda "+(o.number||""), body,
     `<button class="btn ghost" data-ok>Fechar</button><button class="btn" data-pdf>⬇ PDF</button>`,
     `<button class="btn primary sm" data-toedit>Editar</button>`);
   m.ov.querySelector("[data-ok]").onclick=m.close;
